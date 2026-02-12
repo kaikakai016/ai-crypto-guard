@@ -1,25 +1,68 @@
-// popup.js
+// popup.js - Логика интерфейса расширения
 
-// Function to check the address
-function checkAddress(address) {
-    // Logic for checking address, e.g., validation against a database or API
-    // Return results based on the check
-    return true; // Replace with actual logic
+// Функция для проверки формата адреса Ethereum
+function isValidEthereumAddress(address) {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-// Function to display results
-function displayResults(results) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = ''; // Clear previous results
-    
-    if (results) {
-        resultsDiv.innerHTML = '<p>Address is valid!</p>';
-    } else {
-        resultsDiv.innerHTML = '<p>Address is invalid!</p>';
+// Когда нажимают на кнопку "Проверить"
+document.getElementById('checkAddressBtn').addEventListener('click', async () => {
+    const address = document.getElementById('addressInput').value.trim();
+    const resultBox = document.getElementById('result');
+
+    // Проверяем, что пользователь ввел адрес
+    if (!address) {
+        resultBox.textContent = '⚠️ Введи адрес ��ошелька';
+        resultBox.className = 'result-box warning';
+        return;
     }
-}
 
-// Example usage: assume an address is input
-const addressInput = 'exampleAddress'; // Replace with actual input
-const isValid = checkAddress(addressInput);
-displayResults(isValid);
+    // Проверяем формат адреса
+    if (!isValidEthereumAddress(address)) {
+        resultBox.textContent = '❌ Неверный формат адреса!\nАдрес должен начинаться с 0x и содержать 40 символов';
+        resultBox.className = 'result-box danger';
+        return;
+    }
+
+    // Показываем "загружается"
+    resultBox.textContent = '🔄 Анализируем адрес...';
+    resultBox.className = 'result-box loading';
+
+    try {
+        // Отправляем адрес на проверку background скрипту
+        const response = await chrome.runtime.sendMessage({
+            action: 'analyzeAddress',
+            address: address
+        });
+
+        // Показываем результат
+        if (response.isSafe) {
+            resultBox.textContent = `✅ БЕЗОПАСНО\n\nАдрес выглядит легитимным`;
+            resultBox.className = 'result-box safe';
+        } else {
+            resultBox.textContent = `⛔ ОПАСНО!\n\nВероятность скама: ${(response.riskScore * 100).toFixed(1)}%\n\nПричина: ${response.reason}`;
+            resultBox.className = 'result-box danger';
+        }
+    } catch (error) {
+        resultBox.textContent = `❌ Ошибка: ${error.message}`;
+        resultBox.className = 'result-box warning';
+        console.error('Error:', error);
+    }
+});
+
+// Загружаем статистику при открытии окна
+document.addEventListener('DOMContentLoaded', async () => {
+    const statsBox = document.getElementById('stats');
+    
+    try {
+        const response = await chrome.runtime.sendMessage({
+            action: 'getStatus'
+        });
+        statsBox.textContent = `✅ Расширение активно\n\nПроверено адресов: ${response.checkedCount}\nОпасных адресов: ${response.suspiciousCount}`;
+        statsBox.className = 'result-box safe';
+    } catch (error) {
+        statsBox.textContent = '⚠️ Расширение загружается...';
+        statsBox.className = 'result-box warning';
+        console.error('Status error:', error);
+    }
+});
