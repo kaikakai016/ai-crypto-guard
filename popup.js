@@ -1,6 +1,10 @@
 // popup.js - Логика интерфейса расширения
 
-const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
+const DEFAULT_SETTINGS = { 
+    enabled: true, 
+    failOpen: true,
+    smallTransferThresholdWei: '1000000000000000' // 0.001 ETH in wei
+};
 // Cached regex pattern for better performance
 const ETHEREUM_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 
@@ -8,6 +12,12 @@ function loadSettings() {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
         document.getElementById('enabled').checked = !!items.enabled;
         document.getElementById('failOpen').checked = !!items.failOpen;
+        
+        // Load threshold from wei, convert to ETH for display
+        const thresholdWei = items.smallTransferThresholdWei || '1000000000000000';
+        const thresholdEth = Number(BigInt(thresholdWei)) / 1e18;
+        document.getElementById('smallTransferThreshold').value = thresholdEth;
+        
         document.getElementById('status').textContent = 'Settings loaded';
     });
 }
@@ -15,7 +25,12 @@ function loadSettings() {
 function saveSettings() {
     const enabled = document.getElementById('enabled').checked;
     const failOpen = document.getElementById('failOpen').checked;
-    chrome.storage.sync.set({ enabled, failOpen }, () => {
+    
+    // Convert ETH threshold to wei string for storage
+    const thresholdEth = parseFloat(document.getElementById('smallTransferThreshold').value) || 0.001;
+    const thresholdWei = Math.floor(thresholdEth * 1e18).toString();
+    
+    chrome.storage.sync.set({ enabled, failOpen, smallTransferThresholdWei: thresholdWei }, () => {
         document.getElementById('status').textContent = 'Settings saved';
     });
 }
@@ -32,7 +47,7 @@ document.getElementById('checkAddressBtn').addEventListener('click', async () =>
 
     // Проверяем, что пользователь ввел адрес
     if (!address) {
-        resultBox.textContent = '⚠️ Введи адрес ��ошелька';
+        resultBox.textContent = '⚠️ Введи адрес кошелька';
         resultBox.className = 'result-box warning';
         return;
     }
@@ -76,6 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSettings();
     document.getElementById('enabled').addEventListener('change', saveSettings);
     document.getElementById('failOpen').addEventListener('change', saveSettings);
+    document.getElementById('smallTransferThreshold').addEventListener('change', saveSettings);
 
     const statsBox = document.getElementById('stats');
     
