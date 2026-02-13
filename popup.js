@@ -1,18 +1,75 @@
 // popup.js - Логика интерфейса расширения
 
+const DEFAULT_SETTINGS = { 
+    enabled: true, 
+    failOpen: false, 
+    rpcUrl: '', 
+    chainId: '0x1', 
+    aiEnabled: true, 
+    aiSensitivity: 'medium' 
+};
+
 // Функция для проверки формата адреса Ethereum
 function isValidEthereumAddress(address) {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
+// Load settings from storage
+function loadSettings() {
+    chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
+        if (document.getElementById('enabled')) {
+            document.getElementById('enabled').checked = !!items.enabled;
+        }
+        if (document.getElementById('failOpen')) {
+            document.getElementById('failOpen').checked = !!items.failOpen;
+        }
+        if (document.getElementById('rpcUrl')) {
+            document.getElementById('rpcUrl').value = items.rpcUrl || '';
+        }
+        if (document.getElementById('chainId')) {
+            document.getElementById('chainId').value = items.chainId || '0x1';
+        }
+        if (document.getElementById('aiEnabled')) {
+            document.getElementById('aiEnabled').checked = !!items.aiEnabled;
+        }
+        if (document.getElementById('aiSensitivity')) {
+            document.getElementById('aiSensitivity').value = items.aiSensitivity || 'medium';
+        }
+        if (document.getElementById('status')) {
+            document.getElementById('status').textContent = 'Settings loaded';
+        }
+    });
+}
+
+// Save settings to storage
+function saveSettings() {
+    const settings = {
+        enabled: document.getElementById('enabled')?.checked ?? true,
+        failOpen: document.getElementById('failOpen')?.checked ?? false,
+        rpcUrl: document.getElementById('rpcUrl')?.value.trim() ?? '',
+        chainId: document.getElementById('chainId')?.value.trim() ?? '0x1',
+        aiEnabled: document.getElementById('aiEnabled')?.checked ?? true,
+        aiSensitivity: document.getElementById('aiSensitivity')?.value ?? 'medium'
+    };
+    
+    chrome.storage.sync.set(settings, () => {
+        if (document.getElementById('status')) {
+            document.getElementById('status').textContent = 'Settings saved';
+            setTimeout(() => {
+                document.getElementById('status').textContent = '';
+            }, 2000);
+        }
+    });
+}
+
 // Когда нажимают на кнопку "Проверить"
-document.getElementById('checkAddressBtn').addEventListener('click', async () => {
+document.getElementById('checkAddressBtn')?.addEventListener('click', async () => {
     const address = document.getElementById('addressInput').value.trim();
     const resultBox = document.getElementById('result');
 
     // Проверяем, что пользователь ввел адрес
     if (!address) {
-        resultBox.textContent = '⚠️ Введи адрес ��ошелька';
+        resultBox.textContent = '⚠️ Введи адрес кошелька';
         resultBox.className = 'result-box warning';
         return;
     }
@@ -52,6 +109,18 @@ document.getElementById('checkAddressBtn').addEventListener('click', async () =>
 
 // Загружаем статистику при открытии окна
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load settings
+    loadSettings();
+    
+    // Wire up event listeners for settings
+    ['enabled', 'failOpen', 'rpcUrl', 'chainId', 'aiEnabled', 'aiSensitivity'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', saveSettings);
+        }
+    });
+    
+    // Load stats
     const statsBox = document.getElementById('stats');
     
     try {

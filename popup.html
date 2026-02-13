@@ -34,6 +34,45 @@
                 Загружается...
             </div>
         </div>
+
+        <div class="section">
+            <h2>AI Settings</h2>
+            <label>
+                <input type="checkbox" id="enabled" />
+                Enable Guard
+            </label>
+            <br><br>
+            <label>
+                <input type="checkbox" id="failOpen" />
+                Fail Open (allow on errors)
+            </label>
+            <br><br>
+            <label>
+                RPC URL (for gas simulation):
+                <input type="text" id="rpcUrl" class="input-field" placeholder="https://eth-mainnet.g.alchemy.com/v2/..." />
+            </label>
+            <br><br>
+            <label>
+                Chain ID:
+                <input type="text" id="chainId" class="input-field" placeholder="0x1" />
+            </label>
+            <br><br>
+            <label>
+                <input type="checkbox" id="aiEnabled" />
+                Enable AI Risk Detector
+            </label>
+            <br><br>
+            <label>
+                AI Sensitivity:
+                <select id="aiSensitivity">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </label>
+            <br><br>
+            <div id="status" style="color: green; font-weight: bold;"></div>
+        </div>
     </div>
 
     <script src="popup.js"></script>
