@@ -13,9 +13,12 @@ function loadSettings() {
         document.getElementById('enabled').checked = !!items.enabled;
         document.getElementById('failOpen').checked = !!items.failOpen;
         
-        // Load threshold from wei, convert to ETH for display
+        // Load threshold from wei, convert to ETH for display using BigInt for precision
         const thresholdWei = items.smallTransferThresholdWei || '1000000000000000';
-        const thresholdEth = Number(BigInt(thresholdWei)) / 1e18;
+        const weiBig = BigInt(thresholdWei);
+        const ethBig = weiBig / BigInt(1e18);
+        const fracWei = weiBig % BigInt(1e18);
+        const thresholdEth = Number(ethBig) + Number(fracWei) / 1e18;
         document.getElementById('smallTransferThreshold').value = thresholdEth;
         
         document.getElementById('status').textContent = 'Settings loaded';
@@ -26,9 +29,10 @@ function saveSettings() {
     const enabled = document.getElementById('enabled').checked;
     const failOpen = document.getElementById('failOpen').checked;
     
-    // Convert ETH threshold to wei string for storage
+    // Convert ETH threshold to wei string for storage using BigInt for precision
     const thresholdEth = parseFloat(document.getElementById('smallTransferThreshold').value) || 0.001;
-    const thresholdWei = Math.floor(thresholdEth * 1e18).toString();
+    // Use BigInt multiplication to avoid floating point precision issues
+    const thresholdWei = (BigInt(Math.floor(thresholdEth * 1e6)) * BigInt(1e12)).toString();
     
     chrome.storage.sync.set({ enabled, failOpen, smallTransferThresholdWei: thresholdWei }, () => {
         document.getElementById('status').textContent = 'Settings saved';
