@@ -222,3 +222,4 @@ function getRiskReason(score) {
     if (score > 0.4) return 'Средний риск';
     if (score > 0.2) return 'Низкий риск';
     return 'Адрес выглядит безопасным';
+}
