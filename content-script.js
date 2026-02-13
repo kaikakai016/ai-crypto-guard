@@ -45,14 +45,28 @@ window.addEventListener('message', async (event) => {
                 reason: response.reason
             }, '*');
         } catch (error) {
-            console.error('[AI Crypto Guard] Analysis error:', error);
-            // Send error verdict (fail-closed by default)
-            window.postMessage({
-                type: 'AI_GUARD_VERDICT',
-                requestId: event.data.requestId,
-                allowed: false,
-                reason: 'Analysis error: ' + error.message
-            }, '*');
+            console.error('[AI Crypto Guard] Communication error:', error);
+            // Communication error with background script
+            // Load failOpen setting to determine how to handle this
+            try {
+                const settings = await chrome.storage.sync.get({ failOpen: false });
+                window.postMessage({
+                    type: 'AI_GUARD_VERDICT',
+                    requestId: event.data.requestId,
+                    allowed: settings.failOpen,
+                    reason: settings.failOpen 
+                        ? 'Extension communication error (fail-open): ' + error.message
+                        : 'Extension communication error (fail-closed): ' + error.message
+                }, '*');
+            } catch (storageError) {
+                // Can't even access storage - fail closed for safety
+                window.postMessage({
+                    type: 'AI_GUARD_VERDICT',
+                    requestId: event.data.requestId,
+                    allowed: false,
+                    reason: 'Extension error: ' + error.message
+                }, '*');
+            }
         }
     }
 });

@@ -60,12 +60,11 @@
         params: args.params
       }, '*');
       
-      // Timeout after 30 seconds
+      // Timeout after 30 seconds - fail closed for safety
+      // (inpage context cannot access chrome.storage to check failOpen setting)
       setTimeout(() => {
         window.removeEventListener('message', verdictListener);
-        // On timeout, apply fail-open/fail-closed based on settings
-        // We'll let the content script handle this via verdict
-        reject(new Error('AI Crypto Guard analysis timeout'));
+        reject(new Error('AI Crypto Guard analysis timeout - transaction blocked for safety'));
       }, 30000);
     });
   };

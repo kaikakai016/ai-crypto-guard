@@ -94,7 +94,8 @@ function analyzeTransactionData(tx) {
 
   // Check for unlimited approval
   if (selector === ERC20_APPROVE_SELECTOR) {
-    // Extract amount (bytes 36-68 in hex = chars 10+64 to 10+128)
+    // Extract amount: selector(4) + address(32) + amount(32 bytes) = chars 10 to 10+128
+    // Amount starts at byte 36 = char 10 + 36*2 = 82
     if (data.length >= 138) {
       const amount = '0x' + data.substring(74, 138);
       if (amount.toLowerCase() === MAX_UINT256.toLowerCase()) {
@@ -105,10 +106,11 @@ function analyzeTransactionData(tx) {
 
   // Check for setApprovalForAll
   if (selector === ERC721_SET_APPROVAL_SELECTOR) {
-    // Extract approved boolean (last parameter)
+    // Extract approved boolean: selector(4) + address(32) + bool(32 bytes)
     if (data.length >= 138) {
-      const approved = data.substring(138 - 2, 138);
-      if (approved !== '00') {
+      const approvedHex = data.substring(106, 138);
+      // Check if any bit is set (not all zeros)
+      if (parseInt(approvedHex, 16) !== 0) {
         warnings.push('⚠️ WARNING: setApprovalForAll - granting full NFT collection access');
       }
     }
@@ -162,15 +164,15 @@ async function analyzeTransaction(settings, method, params) {
 
 // Main transaction analysis handler
 async function handleTransactionAnalysis(request) {
-  try {
-    // Load settings
-    const settings = await chrome.storage.sync.get({
-      enabled: true,
-      failOpen: false,
-      rpcUrl: '',
-      chainId: '0x1'
-    });
+  // Load settings once at the start
+  const settings = await chrome.storage.sync.get({
+    enabled: true,
+    failOpen: false,
+    rpcUrl: '',
+    chainId: '0x1'
+  });
 
+  try {
     // If guard is disabled, allow everything
     if (!settings.enabled) {
       return { allowed: true, reason: 'Guard disabled' };
@@ -192,9 +194,6 @@ async function handleTransactionAnalysis(request) {
 
   } catch (error) {
     console.error('Transaction analysis error:', error);
-    
-    // Load fail-open setting
-    const settings = await chrome.storage.sync.get({ failOpen: false });
     
     if (settings.failOpen) {
       // Fail-open: allow on error
