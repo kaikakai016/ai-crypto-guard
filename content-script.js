@@ -56,11 +56,32 @@ function highlightAddress(address, riskScore) {
     }
 
     nodesToReplace.forEach(node => {
-        const span = document.createElement('span');
-        span.innerHTML = node.textContent.replace(
-            address,
-            `<span style=\"background-color: #ffcccc; border: 2px solid #ff0000; padding: 2px; border-radius: 3px;\" title=\"Риск скама: ${(riskScore * 100).toFixed(1)}%\">${address}</span>`
-        );
-        node.parentNode.replaceChild(span, node);
+        const parent = node.parentNode;
+        const text = node.textContent;
+        const parts = text.split(address);
+        
+        // Create a document fragment to safely build the new content
+        const fragment = document.createDocumentFragment();
+        
+        parts.forEach((part, index) => {
+            // Add the text part
+            if (part) {
+                fragment.appendChild(document.createTextNode(part));
+            }
+            
+            // Add the highlighted address (except after the last part)
+            if (index < parts.length - 1) {
+                const highlightSpan = document.createElement('span');
+                highlightSpan.style.backgroundColor = '#ffcccc';
+                highlightSpan.style.border = '2px solid #ff0000';
+                highlightSpan.style.padding = '2px';
+                highlightSpan.style.borderRadius = '3px';
+                highlightSpan.title = `Риск скама: ${(riskScore * 100).toFixed(1)}%`;
+                highlightSpan.textContent = address;
+                fragment.appendChild(highlightSpan);
+            }
+        });
+        
+        parent.replaceChild(fragment, node);
     });
 }
