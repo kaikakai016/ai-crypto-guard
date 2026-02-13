@@ -105,7 +105,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                                 action: 'highlightAddress',
                                 address: address,
                                 risk: result.riskScore
-                            }).catch(() => {});
+                            }).catch((err) => {
+                                console.log('Failed to highlight address:', err.message);
+                            });
                         }
                     });
                 }

@@ -32,8 +32,8 @@
     const spender = msg.spender || null;
     const value = msg.value || msg.amount || null;
     const deadline = msg.deadline || msg.expiry || null;
-    const chainIdMismatch = domain?.chainId && typeof domain.chainId !== 'string' ? false : false; // placeholder
-    return { isPermit, spender, value, deadline, chainIdMismatch };
+    // Chain ID validation could be added here if needed
+    return { isPermit, spender, value, deadline };
   }
 
   function score(features, sensitivity) {
