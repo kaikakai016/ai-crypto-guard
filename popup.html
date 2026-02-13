@@ -1,41 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Crypto Guard</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <title>AI Crypto Guard</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🛡️ Crypto Guard</h1>
-        
-        <div class="section">
-            <h2>Проверить адрес</h2>
-            <input 
-                type="text" 
-                id="addressInput" 
-                placeholder="Введи адрес кошелька (0x...)..."
-                class="input-field"
-            >
-            <button id="checkAddressBtn" class="btn">Проверить</button>
-        </div>
-
-        <div class="section">
-            <h2>Результат анализа</h2>
-            <div id="result" class="result-box">
-                Результат появится здесь...
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Статистика</h2>
-            <div id="stats" class="result-box">
-                Загружается...
-            </div>
-        </div>
-    </div>
-
-    <script src="popup.js"></script>
+  <h1>AI Crypto Guard</h1>
+  <label><input type="checkbox" id="enabled"> Enable Guard</label><br>
+  <label><input type="checkbox" id="failOpen"> Fail-Open (allow if analysis errors)</label><br>
+  <hr>
+  <h2>RPC Settings</h2>
+  <label>RPC URL: <input type="text" id="rpcUrl" placeholder="https://mainnet.infura.io/v3/KEY"></label><br>
+  <label>Chain ID: <input type="text" id="chainId" placeholder="0x1"></label><br>
+  <p id="status"></p>
+  <script src="popup.js"></script>
 </body>
 </html>

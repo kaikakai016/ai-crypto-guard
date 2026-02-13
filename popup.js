@@ -1,68 +1,78 @@
-// popup.js - Логика интерфейса расширения
+// popup.js - Settings UI for AI Crypto Guard
 
-// Функция для проверки формата адреса Ethereum
-function isValidEthereumAddress(address) {
-    return /^0x[a-fA-F0-9]{40}$/.test(address);
+// Default settings
+const DEFAULT_SETTINGS = {
+  enabled: true,
+  failOpen: false,
+  rpcUrl: '',
+  chainId: '0x1'
+};
+
+// Load settings on page load
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Load settings from chrome.storage.sync
+    const result = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+    
+    // Update UI with loaded settings
+    document.getElementById('enabled').checked = result.enabled;
+    document.getElementById('failOpen').checked = result.failOpen;
+    document.getElementById('rpcUrl').value = result.rpcUrl;
+    document.getElementById('chainId').value = result.chainId;
+    
+    showStatus('Settings loaded', 'success');
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+    showStatus('Failed to load settings', 'error');
+  }
+});
+
+// Save settings when changed
+document.getElementById('enabled').addEventListener('change', saveSettings);
+document.getElementById('failOpen').addEventListener('change', saveSettings);
+document.getElementById('rpcUrl').addEventListener('input', debounce(saveSettings, 500));
+document.getElementById('chainId').addEventListener('input', debounce(saveSettings, 500));
+
+async function saveSettings() {
+  try {
+    const settings = {
+      enabled: document.getElementById('enabled').checked,
+      failOpen: document.getElementById('failOpen').checked,
+      rpcUrl: document.getElementById('rpcUrl').value.trim(),
+      chainId: document.getElementById('chainId').value.trim()
+    };
+    
+    // Save to chrome.storage.sync
+    await chrome.storage.sync.set(settings);
+    
+    showStatus('Settings saved', 'success');
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    showStatus('Failed to save settings', 'error');
+  }
 }
 
-// Когда нажимают на кнопку "Проверить"
-document.getElementById('checkAddressBtn').addEventListener('click', async () => {
-    const address = document.getElementById('addressInput').value.trim();
-    const resultBox = document.getElementById('result');
+function showStatus(message, type) {
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = message;
+  statusEl.className = type;
+  
+  // Clear status after 3 seconds
+  setTimeout(() => {
+    statusEl.textContent = '';
+    statusEl.className = '';
+  }, 3000);
+}
 
-    // Проверяем, что пользователь ввел адрес
-    if (!address) {
-        resultBox.textContent = '⚠️ Введи адрес ��ошелька';
-        resultBox.className = 'result-box warning';
-        return;
-    }
-
-    // Проверяем формат адреса
-    if (!isValidEthereumAddress(address)) {
-        resultBox.textContent = '❌ Неверный формат адреса!\nАдрес должен начинаться с 0x и содержать 40 символов';
-        resultBox.className = 'result-box danger';
-        return;
-    }
-
-    // Показываем "загружается"
-    resultBox.textContent = '🔄 Анализируем адрес...';
-    resultBox.className = 'result-box loading';
-
-    try {
-        // Отправляем адрес на проверку background скрипту
-        const response = await chrome.runtime.sendMessage({
-            action: 'analyzeAddress',
-            address: address
-        });
-
-        // Показываем результат
-        if (response.isSafe) {
-            resultBox.textContent = `✅ БЕЗОПАСНО\n\nАдрес выглядит легитимным`;
-            resultBox.className = 'result-box safe';
-        } else {
-            resultBox.textContent = `⛔ ОПАСНО!\n\nВероятность скама: ${(response.riskScore * 100).toFixed(1)}%\n\nПричина: ${response.reason}`;
-            resultBox.className = 'result-box danger';
-        }
-    } catch (error) {
-        resultBox.textContent = `❌ Ошибка: ${error.message}`;
-        resultBox.className = 'result-box warning';
-        console.error('Error:', error);
-    }
-});
-
-// Загружаем статистику при открытии окна
-document.addEventListener('DOMContentLoaded', async () => {
-    const statsBox = document.getElementById('stats');
-    
-    try {
-        const response = await chrome.runtime.sendMessage({
-            action: 'getStatus'
-        });
-        statsBox.textContent = `✅ Расширение активно\n\nПроверено адресов: ${response.checkedCount}\nОпасных адресов: ${response.suspiciousCount}`;
-        statsBox.className = 'result-box safe';
-    } catch (error) {
-        statsBox.textContent = '⚠️ Расширение загружается...';
-        statsBox.className = 'result-box warning';
-        console.error('Status error:', error);
-    }
-});
+// Debounce helper for input fields
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
