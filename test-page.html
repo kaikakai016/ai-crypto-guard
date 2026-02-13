@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестовая страница - AI Crypto Guard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .address-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .address-label {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .address {
+            font-family: monospace;
+            background: #f9f9f9;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .note {
+            color: #666;
+            font-size: 14px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тестовая страница для AI Crypto Guard</h1>
+    
+    <div class="info">
+        <strong>Эта страница создана для тестирования расширения AI Crypto Guard.</strong>
+        <p>Расширение должно автоматически найти все Ethereum адреса на этой странице и проверить их безопасность.</p>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">1. Стандартный Ethereum адрес:</div>
+        <div class="address">0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb</div>
+        <p class="note">Обычный адрес, должен быть проверен</p>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">2. Адрес с множеством нулей (подозрительный паттерн):</div>
+        <div class="address">0x1234000000000000000000000000000000005678</div>
+        <p class="note">Содержит подозрительную последовательность нулей - должен быть отмечен как рискованный</p>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">3. Нулевой адрес (burn address):</div>
+        <div class="address">0x0000000000000000000000000000000000000000</div>
+        <p class="note">Известный безопасный адрес для "сжигания" токенов</p>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">4. Еще один стандартный адрес:</div>
+        <div class="address">0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe</div>
+        <p class="note">Реальный адрес известного кошелька</p>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">5. Адрес Uniswap Router:</div>
+        <div class="address">0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D</div>
+        <p class="note">Известный контракт Uniswap</p>
+    </div>
+
+    <div class="info">
+        <strong>Как проверить работу расширения:</strong>
+        <ul>
+            <li>Убедитесь, что расширение AI Crypto Guard установлено и активно</li>
+            <li>Обновите эту страницу (F5)</li>
+            <li>Подозрительные адреса должны быть выделены красным фоном</li>
+            <li>Нажмите на иконку расширения для просмотра статистики</li>
+            <li>Скопируйте любой адрес и проверьте его вручную через popup расширения</li>
+        </ul>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">6. Множественные адреса в тексте:</div>
+        <p>
+            Вот несколько адресов в одном абзаце: 
+            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 (USDC Contract), 
+            0xdAC17F958D2ee523a2206206994597C13D831ec7 (USDT Contract),
+            0x6B175474E89094C44Da98b954EedeAC495271d0F (DAI Contract).
+            Расширение должно найти все три адреса.
+        </p>
+    </div>
+
+    <div class="address-section">
+        <div class="address-label">7. Адрес с подозрительным паттерном:</div>
+        <div class="address">0xabc0000000000000000000000000000000000def</div>
+        <p class="note">Еще один адрес с множеством нулей - высокий риск</p>
+    </div>
+
+    <div class="info" style="background: #fff3e0; border-left-color: #ff9800;">
+        <strong>⚠️ Внимание:</strong>
+        <p>Адреса на этой странице используются только для тестирования. Не используйте их для реальных транзакций!</p>
+    </div>
+</body>
+</html>
