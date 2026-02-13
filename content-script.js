@@ -57,8 +57,8 @@ function scanForEthereumAddresses() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', scanForEthereumAddresses);
 } else {
-    // Если страница уже загружена, запускаем сразу
-    scanForEthereumAddresses();
+    // Если страница уже загружена, небольшая задержка для стабилизации DOM
+    setTimeout(scanForEthereumAddresses, 100);
 }
 
 // Слушаем указания от background.js
