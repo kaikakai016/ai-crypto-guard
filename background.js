@@ -55,9 +55,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     function isUnlimitedApprove(dataHex) {
                         if (!dataHex || !dataHex.startsWith('0x')) return false;
                         if (dataHex.slice(0, 10) !== SELECTORS.approve) return false;
-                        // params: address (32 bytes), amount (32 bytes). MAX_UINT256 = 0xffff... (64 f)
-                        const amountHex = dataHex.slice(10 + (64 * 2));
-                        // However slicing is brittle; safer: check last 64 nibbles == f*
+                        // params: address (32 bytes = 64 hex chars), amount (32 bytes = 64 hex chars)
+                        // After selector (10 chars), address is next 64 chars, so amount starts at 10 + 64 = 74
+                        const amountHex = dataHex.slice(74);
+                        // MAX_UINT256 = 0xffff... (64 f's)
                         const last64 = dataHex.slice(-64);
                         return /^f{64}$/i.test(last64);
                     }
@@ -89,6 +90,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 if (method === 'eth_signTypedData_v4') {
                     // EIP-712: try to parse and detect Permit-like patterns
+                    // params[0] is address, params[1] is typed data
+                    if (!params[1]) {
+                        return sendResponse({ action: 'warn', message: 'Missing typed data in signature request.' });
+                    }
                     try {
                         const typed = JSON.parse(params[1] || '{}');
                         const domainName = typed?.domain?.name || '';

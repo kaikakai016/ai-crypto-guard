@@ -6,7 +6,7 @@ function loadSettings() {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
         document.getElementById('enabled').checked = !!items.enabled;
         document.getElementById('failOpen').checked = !!items.failOpen;
-        document.getElementById('status').textContent = 'Настройки загружены';
+        document.getElementById('status').textContent = 'Settings loaded';
     });
 }
 
@@ -14,7 +14,7 @@ function saveSettings() {
     const enabled = document.getElementById('enabled').checked;
     const failOpen = document.getElementById('failOpen').checked;
     chrome.storage.sync.set({ enabled, failOpen }, () => {
-        document.getElementById('status').textContent = 'Настройки сохранены';
+        document.getElementById('status').textContent = 'Settings saved';
     });
 }
 

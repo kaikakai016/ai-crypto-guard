@@ -1,4 +1,6 @@
 (function() {
+  const GUARD_RESPONSE_TIMEOUT_MS = 2500;
+
   try {
     if (!window.ethereum || typeof window.ethereum.request !== 'function') {
       return;
@@ -23,7 +25,7 @@
         setTimeout(() => {
           try { window.removeEventListener('message', handler); } catch (_) {}
           resolve({ action: 'allow', reason: 'timeout' });
-        }, 2500);
+        }, GUARD_RESPONSE_TIMEOUT_MS);
       });
     }
 
