@@ -6,7 +6,6 @@ function loadSettings() {
   chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
     document.getElementById('enabled').checked = !!items.enabled;
     document.getElementById('failOpen').checked = !!items.failOpen;
-    document.getElementById('status').textContent = 'Settings loaded';
   });
 }
 

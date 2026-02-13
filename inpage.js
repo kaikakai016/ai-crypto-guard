@@ -1,5 +1,7 @@
 // inpage.js - Intercept window.ethereum requests in the page context
 (function() {
+  const VERDICT_TIMEOUT_MS = 2500; // Timeout for extension response
+  
   try {
     if (!window.ethereum || typeof window.ethereum.request !== 'function') {
       return;
@@ -24,7 +26,7 @@
         setTimeout(() => {
           try { window.removeEventListener('message', handler); } catch (_) {}
           resolve({ action: 'allow', reason: 'timeout' });
-        }, 2500);
+        }, VERDICT_TIMEOUT_MS);
       });
     }
 

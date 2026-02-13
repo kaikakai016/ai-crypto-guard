@@ -10,6 +10,7 @@ const KNOWN_SCAM_ADDRESSES = new Set([
 
 // Basic settings via chrome.storage (failOpen: if true, default allow on errors/timeouts)
 const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
+const ONE_ETH_IN_WEI = BigInt('0xde0b6b3a7640000'); // 1 ETH = 10^18 wei
 
 async function getSettings() {
   return new Promise((resolve) => {
@@ -37,8 +38,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     const valueHex = tx.value || '0x0';
 
                     // Quick checks
-                    if (!to) {
-                        return sendResponse({ action: 'warn', message: 'No destination address. High risk.' });
+                    // Note: Contract deployments legitimately have no 'to' address
+                    if (!to && (!data || data === '0x' || data.length < 10)) {
+                        return sendResponse({ action: 'warn', message: 'No destination address and no contract deployment data. High risk.' });
                     }
 
                     const selector = (data.startsWith('0x') ? data.slice(0, 10) : '');
@@ -77,7 +79,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     // Large value transfer (heuristic): warn if >= 1 ETH
                     try {
                         const bigint = BigInt(valueHex);
-                        if (bigint >= BigInt('0xde0b6b3a7640000')) { // 1e18 wei
+                        if (bigint >= ONE_ETH_IN_WEI) {
                             return sendResponse({ action: 'warn', message: 'High-value transfer (>= 1 ETH). Double-check recipient and context.' });
                         }
                     } catch (_) {}
