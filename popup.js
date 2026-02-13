@@ -1,5 +1,22 @@
 // popup.js - Логика интерфейса расширения
 
+const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
+
+function loadSettings() {
+  chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
+    document.getElementById('enabled').checked = !!items.enabled;
+    document.getElementById('failOpen').checked = !!items.failOpen;
+  });
+}
+
+function saveSettings() {
+  const enabled = document.getElementById('enabled').checked;
+  const failOpen = document.getElementById('failOpen').checked;
+  chrome.storage.sync.set({ enabled, failOpen }, () => {
+    document.getElementById('status').textContent = 'Settings saved';
+  });
+}
+
 // Функция для проверки формата адреса Ethereum
 function isValidEthereumAddress(address) {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
@@ -52,6 +69,11 @@ document.getElementById('checkAddressBtn').addEventListener('click', async () =>
 
 // Загружаем статистику при открытии окна
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load settings
+    loadSettings();
+    document.getElementById('enabled').addEventListener('change', saveSettings);
+    document.getElementById('failOpen').addEventListener('change', saveSettings);
+    
     const statsBox = document.getElementById('stats');
     
     try {

@@ -8,8 +8,121 @@ const KNOWN_SCAM_ADDRESSES = new Set([
     // Примеры известных скам адресов (можно добавить свои)
 ]);
 
+// Basic settings via chrome.storage (failOpen: if true, default allow on errors/timeouts)
+const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
+const ONE_ETH_IN_WEI = BigInt('0xde0b6b3a7640000'); // 1 ETH = 10^18 wei
+
+async function getSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => resolve(items));
+  });
+}
+
 // Слушаем сообщения от popup.js и content-script.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // Handle AI_GUARD_CHECK messages for transaction/signature interception
+    if (request && request.type === 'AI_GUARD_CHECK') {
+        (async () => {
+            const { enabled, failOpen } = await getSettings();
+            if (!enabled) return sendResponse({ action: 'allow', message: 'Guard disabled' });
+
+            try {
+                const args = request.payload || {};
+                const method = args.method;
+                const params = args.params || [];
+
+                if (method === 'eth_sendTransaction') {
+                    const tx = params[0] || {};
+                    const to = (tx.to || '').toLowerCase();
+                    const data = tx.data || '0x';
+                    const valueHex = tx.value || '0x0';
+
+                    // Quick checks
+                    // Note: Contract deployments legitimately have no 'to' address
+                    if (!to && (!data || data === '0x' || data.length < 10)) {
+                        return sendResponse({ action: 'warn', message: 'No destination address and no contract deployment data. High risk.' });
+                    }
+
+                    const selector = (data.startsWith('0x') ? data.slice(0, 10) : '');
+                    // Known selectors
+                    const SELECTORS = {
+                        approve: '0x095ea7b3', // approve(address,uint256)
+                        setApprovalForAll: '0xa22cb465', // setApprovalForAll(address,bool)
+                        transferOwnership: '0xf2fde38b', // transferOwnership(address)
+                        upgradeTo: '0x3659cfe6', // upgradeTo(address)
+                        upgradeToAndCall: '0x4f1ef286', // upgradeToAndCall(address,bytes)
+                    };
+
+                    // Detect unlimited approve
+                    function isUnlimitedApprove(dataHex) {
+                        if (!dataHex || !dataHex.startsWith('0x')) return false;
+                        if (dataHex.slice(0, 10) !== SELECTORS.approve) return false;
+                        // params: address (32 bytes), amount (32 bytes). MAX_UINT256 = 0xffff... (64 f)
+                        const last64 = dataHex.slice(-64);
+                        return /^f{64}$/i.test(last64);
+                    }
+
+                    function isSetApprovalForAll(dataHex) {
+                        return dataHex && dataHex.startsWith(SELECTORS.setApprovalForAll);
+                    }
+
+                    if (isUnlimitedApprove(data)) {
+                        return sendResponse({ action: 'warn', message: 'Unlimited token allowance detected. Prefer a limited amount.' });
+                    }
+                    if (isSetApprovalForAll(data)) {
+                        return sendResponse({ action: 'warn', message: 'setApprovalForAll grants full NFT access to the operator. Proceed only if trusted.' });
+                    }
+                    if (selector === SELECTORS.transferOwnership || selector === SELECTORS.upgradeTo || selector === SELECTORS.upgradeToAndCall) {
+                        return sendResponse({ action: 'warn', message: 'Sensitive admin operation detected (ownership/upgrade). Ensure this is intended.' });
+                    }
+
+                    // Large value transfer (heuristic): warn if >= 1 ETH
+                    try {
+                        const bigint = BigInt(valueHex);
+                        if (bigint >= ONE_ETH_IN_WEI) {
+                            return sendResponse({ action: 'warn', message: 'High-value transfer (>= 1 ETH). Double-check recipient and context.' });
+                        }
+                    } catch (_) {}
+
+                    return sendResponse({ action: 'allow' });
+                }
+
+                if (method === 'eth_signTypedData_v4') {
+                    // EIP-712: try to parse and detect Permit-like patterns
+                    try {
+                        const typed = JSON.parse(params[1] || '{}');
+                        const domainName = typed?.domain?.name || '';
+                        const types = Object.keys(typed?.types || {});
+                        const msg = typed?.message || {};
+
+                        const isPermit = types.some(t => /Permit/i.test(t)) || 'spender' in msg;
+                        if (isPermit) {
+                            const spender = msg.spender || '(unknown)';
+                            const value = msg.value || msg.amount || '(unknown)';
+                            return sendResponse({ action: 'warn', message: `Permit-like signature detected. Spender ${spender} may spend up to ${value}.` });
+                        }
+                    } catch (e) {
+                        // If parsing fails, err on caution
+                        return sendResponse({ action: 'warn', message: 'Opaque typed data signature. Review carefully before signing.' });
+                    }
+                    return sendResponse({ action: 'allow' });
+                }
+
+                if (method === 'personal_sign' || method === 'eth_sign') {
+                    return sendResponse({ action: 'warn', message: 'Raw signature can be reused in phishing attacks. Proceed only if you trust the site.' });
+                }
+
+                return sendResponse({ action: 'allow' });
+            } catch (e) {
+                const { failOpen } = await getSettings();
+                const fallback = failOpen ? { action: 'allow', message: 'Guard error, fail-open.' } : { action: 'warn', message: 'Guard error. Please review manually.' };
+                return sendResponse(fallback);
+            }
+        })();
+        return true; // async response
+    }
+
+
     if (request.action === 'analyzeAddress') {
         analyzeAddress(request.address).then(result => {
             checkedAddresses++;
@@ -111,3 +224,4 @@ function getRiskReason(score) {
     if (score > 0.4) return 'Средний риск';
     if (score > 0.2) return 'Низкий риск';
     return 'Адрес выглядит безопасным';
+}
