@@ -5,3 +5,16 @@ node_modules/
 /dist/
 /build/
 out/
+
+# Test files
+test-functionality.js
+
+# Temporary files
+*.tmp
+*.log
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar

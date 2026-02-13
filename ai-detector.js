@@ -1,3 +1,7 @@
+// ai-detector.js - Placeholder for future AI-powered detection features
+// This class is currently not integrated into the extension
+// It can be used in future versions to implement more advanced analysis
+
 class CryptoSecurityAI {
     constructor() {
         // Initialize any required properties
