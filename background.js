@@ -8,12 +8,48 @@ const ETHEREUM_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 const ZEROS_PATTERN = /0{10,}/;
 
 // Basic settings via chrome.storage (failOpen: if true, default allow on errors/timeouts)
-const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
+const DEFAULT_SETTINGS = { 
+  enabled: true, 
+  failOpen: true,
+  smallTransferThresholdWei: '1000000000000000' // 0.001 ETH in wei
+};
 
 async function getSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => resolve(items));
   });
+}
+
+// Helper: Convert hex string to BigInt safely
+function hexToBigInt(hex) {
+  if (!hex || typeof hex !== 'string') return BigInt(0);
+  const clean = hex.startsWith('0x') ? hex.slice(2) : hex;
+  if (!clean || !/^[0-9a-fA-F]*$/.test(clean)) return BigInt(0);
+  return BigInt('0x' + (clean || '0'));
+}
+
+// Helper: Format BigInt wei to ETH string with 6 decimal places (no floating point)
+function formatWeiToEth6(weiBig) {
+  const weiPerEth = BigInt('1000000000000000000'); // 1e18
+  const intPart = weiBig / weiPerEth;
+  const fracWei = weiBig % weiPerEth;
+  // To get 6 decimals, divide by 1e12 (leaving 6 digits)
+  const fracScaled = fracWei / BigInt('1000000000000'); // 1e12
+  const fracStr = fracScaled.toString().padStart(6, '0');
+  return `${intPart}.${fracStr}`;
+}
+
+// Detector: Check if transaction is a small ETH transfer (common scam verification)
+function isSmallEthTransfer(dataHex, valueHex, thresholdWeiStr) {
+  // Plain ETH transfer: data is empty or '0x'
+  const isPlainTransfer = !dataHex || dataHex === '0x';
+  if (!isPlainTransfer) return false;
+
+  const value = hexToBigInt(valueHex);
+  const threshold = BigInt(thresholdWeiStr);
+  
+  // Value must be > 0 and <= threshold
+  return value > BigInt(0) && value <= threshold;
 }
 
 // Хранилище известных опасных адресов
@@ -79,6 +115,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     }
                     if (selector === SELECTORS.transferOwnership || selector === SELECTORS.upgradeTo || selector === SELECTORS.upgradeToAndCall) {
                         return sendResponse({ action: 'warn', message: 'Sensitive admin operation detected (ownership/upgrade). Ensure this is intended.' });
+                    }
+
+                    // Small ETH transfer detector (scam verification/gas test)
+                    const { smallTransferThresholdWei } = await getSettings();
+                    if (isSmallEthTransfer(data, valueHex, smallTransferThresholdWei)) {
+                        const valueBig = hexToBigInt(valueHex);
+                        const ethAmount = formatWeiToEth6(valueBig);
+                        return sendResponse({ 
+                            action: 'warn', 
+                            message: `Обнаружен небольшой перевод ETH (~${ethAmount} ETH) без данных. Часто используется в скам-сценариях как «проверка/верификация кошелька». Продолжить?` 
+                        });
                     }
 
                     // Large value transfer (heuristic): warn if >= 1 ETH
