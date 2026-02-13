@@ -1,5 +1,6 @@
 (function() {
   const GUARD_RESPONSE_TIMEOUT_MS = 2500;
+  const RISKY_METHODS = ['eth_sendTransaction', 'eth_signTypedData_v4', 'personal_sign', 'eth_sign'];
 
   try {
     if (!window.ethereum || typeof window.ethereum.request !== 'function') {
@@ -12,18 +13,20 @@
       // Send to extension via window messaging; content-script will forward to background
       window.postMessage({ type: 'AI_GUARD_CHECK', payload: args }, '*');
       return new Promise((resolve) => {
+        let timeoutId;
         const handler = (ev) => {
           if (ev.source !== window) return;
           const data = ev.data;
           if (data && data.type === 'AI_GUARD_VERDICT') {
             window.removeEventListener('message', handler);
+            clearTimeout(timeoutId);
             resolve(data.verdict || { action: 'allow' });
           }
         };
         window.addEventListener('message', handler);
         // Fallback in case extension doesn't respond
-        setTimeout(() => {
-          try { window.removeEventListener('message', handler); } catch (_) {}
+        timeoutId = setTimeout(() => {
+          window.removeEventListener('message', handler);
           resolve({ action: 'allow', reason: 'timeout' });
         }, GUARD_RESPONSE_TIMEOUT_MS);
       });
@@ -31,8 +34,7 @@
 
     window.ethereum.request = async (args) => {
       // Intercept risky methods and ask guard for a verdict
-      const riskyMethods = ['eth_sendTransaction', 'eth_signTypedData_v4', 'personal_sign', 'eth_sign'];
-      if (args && riskyMethods.includes(args.method)) {
+      if (args && RISKY_METHODS.includes(args.method)) {
         const verdict = await getVerdict(args);
         if (verdict.action === 'block') {
           throw new Error(verdict.message || 'Operation blocked by AI Crypto Guard');

@@ -3,6 +3,10 @@
 let checkedAddresses = 0;
 let suspiciousAddresses = new Set();
 
+// Cached regex patterns for better performance
+const ETHEREUM_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+const ZEROS_PATTERN = /0{10,}/;
+
 // Basic settings via chrome.storage (failOpen: if true, default allow on errors/timeouts)
 const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
 
@@ -148,8 +152,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === 'checkPageAddresses') {
         // Проверяем адреса найденные на странице
-        request.addresses.forEach(address => {
-            analyzeAddress(address).then(result => {
+        // Use Promise.all to properly handle async operations
+        (async () => {
+            const addressResults = await Promise.all(
+                request.addresses.map(address => analyzeAddress(address))
+            );
+            
+            // Process results and notify about dangerous addresses
+            request.addresses.forEach((address, index) => {
+                const result = addressResults[index];
                 if (!result.isSafe) {
                     // Уведомляем о опасном адресе
                     chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
@@ -165,7 +176,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     });
                 }
             });
-        });
+        })();
         return true; // Async response for message handler
     }
 });
@@ -193,7 +204,7 @@ async function analyzeAddress(address) {
 
 // Проверяем валидность адреса Ethereum
 function isValidEthereumAddress(address) {
-    return /^0x[a-fA-F0-9]{40}$/.test(address);
+    return ETHEREUM_ADDRESS_PATTERN.test(address);
 }
 
 // Вычисляем риск адреса
@@ -210,8 +221,8 @@ function calculateRiskScore(address) {
         return 0.85;
     }
 
-    // Если адрес имеет подозрительные паттерны
-    if (address.match(/0{10,}/)) {
+    // Если адрес имеет подозрительные паттерны (много нулей)
+    if (ZEROS_PATTERN.test(address)) {
         riskScore += 0.3; // Много нулей - подозрительно
     }
 

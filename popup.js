@@ -1,6 +1,8 @@
 // popup.js - Логика интерфейса расширения
 
 const DEFAULT_SETTINGS = { enabled: true, failOpen: true };
+// Cached regex pattern for better performance
+const ETHEREUM_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 
 function loadSettings() {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
@@ -20,7 +22,7 @@ function saveSettings() {
 
 // Функция для проверки формата адреса Ethereum
 function isValidEthereumAddress(address) {
-    return /^0x[a-fA-F0-9]{40}$/.test(address);
+    return ETHEREUM_ADDRESS_PATTERN.test(address);
 }
 
 // Когда нажимают на кнопку "Проверить"

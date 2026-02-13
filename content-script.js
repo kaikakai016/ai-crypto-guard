@@ -14,7 +14,7 @@
 })();
 
 // Bridge window messages to background and back
-window.addEventListener('message', (event) => {
+const messageHandler = (event) => {
   if (event.source !== window) return;
   const msg = event.data;
   if (!msg || msg.type !== 'AI_GUARD_CHECK') return;
@@ -22,11 +22,19 @@ window.addEventListener('message', (event) => {
     // Send verdict back to page
     window.postMessage({ type: 'AI_GUARD_VERDICT', verdict: response }, '*');
   });
+};
+
+window.addEventListener('message', messageHandler);
+
+// Clean up event listener before unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  window.removeEventListener('message', messageHandler);
 });
 
 // Функция для поиска всех адресов Ethereum на странице
 function scanForEthereumAddresses() {
-    const pageText = document.body.innerText;
+    // Use textContent instead of innerText for better performance (no layout reflow)
+    const pageText = document.body.textContent;
     const addressPattern = /0x[a-fA-F0-9]{40}/g;
     const addresses = pageText.match(addressPattern) || [];
     
@@ -49,8 +57,8 @@ function scanForEthereumAddresses() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', scanForEthereumAddresses);
 } else {
-    // Если страница уже загружена
-    setTimeout(scanForEthereumAddresses, 1000);
+    // Если страница уже загружена, небольшая задержка для стабилизации DOM
+    setTimeout(scanForEthereumAddresses, 100);
 }
 
 // Слушаем указания от background.js
@@ -66,7 +74,17 @@ function highlightAddress(address, riskScore) {
     const walker = document.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT,
-        null,
+        {
+            acceptNode: function(node) {
+                // Skip script and style elements for performance
+                const parent = node.parentElement;
+                if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                // Only process nodes that contain the address
+                return node.textContent.includes(address) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            }
+        },
         false
     );
 
@@ -74,9 +92,7 @@ function highlightAddress(address, riskScore) {
     let node;
 
     while (node = walker.nextNode()) {
-        if (node.textContent.includes(address)) {
-            nodesToReplace.push(node);
-        }
+        nodesToReplace.push(node);
     }
 
     nodesToReplace.forEach(node => {
