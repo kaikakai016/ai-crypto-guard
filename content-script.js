@@ -1,4 +1,75 @@
-// content-script.js - Сканирование страницы на адреса
+// content-script.js - Bridges inpage.js ↔ background.js and scans page for addresses
+
+// Inject inpage.js into page context (runs before page scripts)
+function injectInpageScript() {
+    try {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('inpage.js');
+        script.onload = function() {
+            this.remove();
+        };
+        (document.head || document.documentElement).appendChild(script);
+        console.log('[AI Crypto Guard] Inpage script injected');
+    } catch (error) {
+        console.error('[AI Crypto Guard] Failed to inject inpage script:', error);
+    }
+}
+
+// Inject as early as possible
+injectInpageScript();
+
+// Listen for messages from inpage.js
+window.addEventListener('message', async (event) => {
+    // Only accept messages from same window
+    if (event.source !== window) {
+        return;
+    }
+
+    if (event.data.type === 'AI_GUARD_CHECK') {
+        console.log('[AI Crypto Guard] Received check request from inpage');
+        
+        try {
+            // Forward to background script for analysis
+            const response = await chrome.runtime.sendMessage({
+                action: 'analyzeTransaction',
+                requestId: event.data.requestId,
+                method: event.data.method,
+                params: event.data.params
+            });
+            
+            // Send verdict back to inpage
+            window.postMessage({
+                type: 'AI_GUARD_VERDICT',
+                requestId: event.data.requestId,
+                allowed: response.allowed,
+                reason: response.reason
+            }, '*');
+        } catch (error) {
+            console.error('[AI Crypto Guard] Communication error:', error);
+            // Communication error with background script
+            // Load failOpen setting to determine how to handle this
+            try {
+                const settings = await chrome.storage.sync.get({ failOpen: false });
+                window.postMessage({
+                    type: 'AI_GUARD_VERDICT',
+                    requestId: event.data.requestId,
+                    allowed: settings.failOpen,
+                    reason: settings.failOpen 
+                        ? 'Extension communication error (fail-open): ' + error.message
+                        : 'Extension communication error (fail-closed): ' + error.message
+                }, '*');
+            } catch (storageError) {
+                // Can't even access storage - fail closed for safety
+                window.postMessage({
+                    type: 'AI_GUARD_VERDICT',
+                    requestId: event.data.requestId,
+                    allowed: false,
+                    reason: 'Extension error: ' + error.message
+                }, '*');
+            }
+        }
+    }
+});
 
 // Функция для поиска всех адресов Ethereum на странице
 function scanForEthereumAddresses() {
