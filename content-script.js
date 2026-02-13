@@ -1,5 +1,29 @@
 // content-script.js - Сканирование страницы на адреса
 
+// Inject inpage.js into the page context
+(function injectInpage() {
+  try {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('inpage.js');
+    script.async = false;
+    (document.head || document.documentElement).appendChild(script);
+    script.onload = () => script.remove();
+  } catch (e) {
+    console.debug('AI Crypto Guard: failed to inject inpage.js', e);
+  }
+})();
+
+// Bridge window messages to background and back
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+  const msg = event.data;
+  if (!msg || msg.type !== 'AI_GUARD_CHECK') return;
+  chrome.runtime.sendMessage({ type: 'AI_GUARD_CHECK', payload: msg.payload }, (response) => {
+    // Send verdict back to page
+    window.postMessage({ type: 'AI_GUARD_VERDICT', verdict: response }, '*');
+  });
+});
+
 // Функция для поиска всех адресов Ethereum на странице
 function scanForEthereumAddresses() {
     const pageText = document.body.innerText;
