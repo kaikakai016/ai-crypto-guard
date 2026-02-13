@@ -1,4 +1,65 @@
-// content-script.js - Сканирование страницы на адреса
+// content-script.js - Сканирование страницы на адреса + инжект inpage.js
+
+// Inject inpage.js into the page context
+function injectInpageScript() {
+    try {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('inpage.js');
+        script.onload = function() {
+            this.remove();
+        };
+        (document.head || document.documentElement).appendChild(script);
+        console.log('[AI Crypto Guard] Inpage script injected');
+    } catch (error) {
+        console.error('[AI Crypto Guard] Failed to inject inpage script:', error);
+    }
+}
+
+// Inject as early as possible
+injectInpageScript();
+
+// Bridge messages between page and background
+window.addEventListener('message', async (event) => {
+    // Only accept messages from the same window
+    if (event.source !== window) {
+        return;
+    }
+
+    const data = event.data;
+    
+    // Handle check requests from inpage.js
+    if (data.type === 'AI_GUARD_CHECK') {
+        console.log('[AI Crypto Guard] Received check request:', data);
+        
+        try {
+            // Forward to background script for analysis
+            const response = await chrome.runtime.sendMessage({
+                action: 'checkTransaction',
+                method: data.method,
+                params: data.params,
+                timestamp: data.timestamp
+            });
+
+            // Send verdict back to inpage.js
+            window.postMessage({
+                type: 'AI_GUARD_VERDICT',
+                requestTimestamp: data.timestamp,
+                allowed: response.allowed,
+                reason: response.reason
+            }, window.location.origin);
+        } catch (error) {
+            console.error('[AI Crypto Guard] Error checking transaction:', error);
+            
+            // Send error verdict (fail-closed by default)
+            window.postMessage({
+                type: 'AI_GUARD_VERDICT',
+                requestTimestamp: data.timestamp,
+                allowed: false,
+                reason: 'Error during security check: ' + error.message
+            }, window.location.origin);
+        }
+    }
+});
 
 // Функция для поиска всех адресов Ethereum на странице
 function scanForEthereumAddresses() {

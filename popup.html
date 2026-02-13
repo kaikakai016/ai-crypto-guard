@@ -8,8 +8,42 @@
 </head>
 <body>
     <div class="container">
-        <h1>🛡️ Crypto Guard</h1>
+        <h1>🛡️ AI Crypto Guard</h1>
         
+        <!-- Pre-Sign Risk Guard Settings -->
+        <div class="section">
+            <h2>Pre-Sign Guard</h2>
+            <label class="checkbox-label">
+                <input type="checkbox" id="enabled" checked>
+                Enable Guard
+            </label>
+            <br>
+            <label class="checkbox-label">
+                <input type="checkbox" id="failOpen">
+                Fail-Open (allow if analysis errors)
+            </label>
+        </div>
+
+        <!-- RPC Settings -->
+        <div class="section">
+            <h2>RPC Settings</h2>
+            <label>
+                RPC URL:
+                <input type="text" id="rpcUrl" class="input-field" placeholder="https://mainnet.infura.io/v3/YOUR_KEY">
+            </label>
+            <br>
+            <label>
+                Chain ID:
+                <input type="text" id="chainId" class="input-field" placeholder="0x1" value="0x1">
+            </label>
+            <br>
+            <button id="saveSettingsBtn" class="btn">Save Settings</button>
+            <p id="settingsStatus" class="status-message"></p>
+        </div>
+
+        <hr>
+
+        <!-- Address Checker -->
         <div class="section">
             <h2>Проверить адрес</h2>
             <input 

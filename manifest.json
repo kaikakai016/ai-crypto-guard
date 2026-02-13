@@ -1,1 +1,45 @@
-{"manifest_version": 3, "name": "AI Crypto Guard", "version": "1.0.0", "description": "AI-powered Chrome extension that protects your crypto transactions from scams", "permissions": ["activeTab", "scripting", "storage"], "host_permissions": ["https://*/*", "http://*/*"], "background": {"service_worker": "background.js"}, "action": {"default_popup": "popup.html", "default_title": "AI Crypto Guard"}, "content_scripts": [{"matches": ["https://*/*", "http://*/*"], "js": ["content-script.js"]}]}
+{
+  "manifest_version": 3,
+  "name": "AI Crypto Guard",
+  "version": "1.0.0",
+  "description": "AI-powered Chrome extension that protects your crypto transactions from scams",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AI Crypto Guard"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inpage.js"
+      ],
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ]
+    }
+  ]
+}
