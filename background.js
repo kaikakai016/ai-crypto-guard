@@ -143,6 +143,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             checkedCount: checkedAddresses,
             suspiciousCount: suspiciousAddresses.size
         });
+        return; // Prevent fall-through to next branch
     }
 
     if (request.action === 'checkPageAddresses') {
@@ -165,6 +166,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
             });
         });
+        return true; // Async response for message handler
     }
 });
 
