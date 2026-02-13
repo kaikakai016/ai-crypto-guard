@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Crypto Guard - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛡️ AI Crypto Guard Test Page</h1>
+    
+    <div class="info">
+        <h2>About This Test Page</h2>
+        <p>This page helps you test the AI Crypto Guard browser extension. Install the extension first, then use the buttons below to test various transaction scenarios.</p>
+    </div>
+
+    <div class="warning">
+        <strong>⚠️ Important:</strong> This is a test page. No real transactions will be executed. The extension will intercept the calls and show warnings based on the configured security rules.
+    </div>
+
+    <h2>Test Scenarios</h2>
+
+    <h3>1. High Value Transfer (>= 1 ETH)</h3>
+    <button class="button" onclick="testHighValueTransfer()">Test High Value Transfer</button>
+    <p>Should trigger: "High value transfer" warning</p>
+
+    <h3>2. Unlimited Token Approval</h3>
+    <button class="button" onclick="testUnlimitedApproval()">Test Unlimited Approval</button>
+    <p>Should trigger: "Unlimited token approval (MAX_UINT256)" warning</p>
+
+    <h3>3. SetApprovalForAll (NFT)</h3>
+    <button class="button" onclick="testSetApprovalForAll()">Test SetApprovalForAll</button>
+    <p>Should trigger: "SetApprovalForAll: granting unlimited NFT access" warning</p>
+
+    <h3>4. Admin Function (transferOwnership)</h3>
+    <button class="button" onclick="testTransferOwnership()">Test Transfer Ownership</button>
+    <p>Should trigger: "Sensitive admin function: transferOwnership" warning</p>
+
+    <h3>5. Normal Transfer (Should Pass)</h3>
+    <button class="button" onclick="testNormalTransfer()">Test Normal Transfer</button>
+    <p>Should pass: Normal small value transfer</p>
+
+    <div id="output" style="margin-top: 30px; padding: 15px; background-color: #e9ecef; border-radius: 5px; display: none;">
+        <h3>Output:</h3>
+        <pre id="outputText"></pre>
+    </div>
+
+    <script>
+        function showOutput(message) {
+            document.getElementById('output').style.display = 'block';
+            document.getElementById('outputText').textContent = message;
+        }
+
+        async function testHighValueTransfer() {
+            if (!window.ethereum) {
+                alert('MetaMask or another Web3 wallet is not installed!');
+                return;
+            }
+
+            try {
+                showOutput('Testing high value transfer (2 ETH)...');
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accounts[0],
+                        to: '0x0000000000000000000000000000000000000000',
+                        value: '0x1BC16D674EC80000', // 2 ETH
+                        data: '0x'
+                    }]
+                });
+                showOutput('Transaction was allowed (unexpected)');
+            } catch (error) {
+                showOutput('Transaction blocked!\nReason: ' + error.message);
+            }
+        }
+
+        async function testUnlimitedApproval() {
+            if (!window.ethereum) {
+                alert('MetaMask or another Web3 wallet is not installed!');
+                return;
+            }
+
+            try {
+                showOutput('Testing unlimited token approval...');
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // ERC20 approve function with MAX_UINT256
+                const data = '0x095ea7b3' + // approve(address,uint256)
+                           '000000000000000000000000' + '1234567890123456789012345678901234567890' + // spender
+                           'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'; // MAX_UINT256
+                
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accounts[0],
+                        to: '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI contract
+                        value: '0x0',
+                        data: data
+                    }]
+                });
+                showOutput('Transaction was allowed (unexpected)');
+            } catch (error) {
+                showOutput('Transaction blocked!\nReason: ' + error.message);
+            }
+        }
+
+        async function testSetApprovalForAll() {
+            if (!window.ethereum) {
+                alert('MetaMask or another Web3 wallet is not installed!');
+                return;
+            }
+
+            try {
+                showOutput('Testing setApprovalForAll...');
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // setApprovalForAll(address,bool) with true
+                const data = '0xa22cb465' + // setApprovalForAll(address,bool)
+                           '000000000000000000000000' + '1234567890123456789012345678901234567890' + // operator
+                           '0000000000000000000000000000000000000000000000000000000000000001'; // true
+                
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accounts[0],
+                        to: '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D', // BAYC NFT
+                        value: '0x0',
+                        data: data
+                    }]
+                });
+                showOutput('Transaction was allowed (unexpected)');
+            } catch (error) {
+                showOutput('Transaction blocked!\nReason: ' + error.message);
+            }
+        }
+
+        async function testTransferOwnership() {
+            if (!window.ethereum) {
+                alert('MetaMask or another Web3 wallet is not installed!');
+                return;
+            }
+
+            try {
+                showOutput('Testing transferOwnership...');
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // transferOwnership(address)
+                const data = '0xf2fde38b' + // transferOwnership(address)
+                           '000000000000000000000000' + '1234567890123456789012345678901234567890'; // new owner
+                
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accounts[0],
+                        to: '0x1234567890123456789012345678901234567890',
+                        value: '0x0',
+                        data: data
+                    }]
+                });
+                showOutput('Transaction was allowed (unexpected)');
+            } catch (error) {
+                showOutput('Transaction blocked!\nReason: ' + error.message);
+            }
+        }
+
+        async function testNormalTransfer() {
+            if (!window.ethereum) {
+                alert('MetaMask or another Web3 wallet is not installed!');
+                return;
+            }
+
+            try {
+                showOutput('Testing normal transfer (0.1 ETH)...');
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accounts[0],
+                        to: '0x0000000000000000000000000000000000000000',
+                        value: '0x16345785D8A0000', // 0.1 ETH
+                        data: '0x'
+                    }]
+                });
+                showOutput('Transaction was allowed (expected)');
+            } catch (error) {
+                showOutput('Transaction blocked!\nReason: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
