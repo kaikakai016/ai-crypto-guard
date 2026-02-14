@@ -7,6 +7,8 @@ const DEFAULT_SETTINGS = {
 };
 // Cached regex pattern for better performance
 const ETHEREUM_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+// BigInt constant for wei to ETH conversion
+const WEI_PER_ETH = 1000000000000000000n;
 
 function loadSettings() {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
@@ -16,8 +18,8 @@ function loadSettings() {
         // Load threshold from wei, convert to ETH for display using BigInt for precision
         const thresholdWei = items.smallTransferThresholdWei || '1000000000000000';
         const weiBig = BigInt(thresholdWei);
-        const ethBig = weiBig / BigInt(1e18);
-        const fracWei = weiBig % BigInt(1e18);
+        const ethBig = weiBig / WEI_PER_ETH;
+        const fracWei = weiBig % WEI_PER_ETH;
         const thresholdEth = Number(ethBig) + Number(fracWei) / 1e18;
         document.getElementById('smallTransferThreshold').value = thresholdEth;
         
