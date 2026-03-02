@@ -1,5 +1,10 @@
 // background.js - Фоновая работа расширения
 
+// Подключаем AI-детектор для расширенного анализа адресов
+importScripts('ai-detector.js');
+
+const aiDetector = new CryptoSecurityAI();
+
 let checkedAddresses = 0;
 let suspiciousAddresses = new Set();
 
@@ -135,6 +140,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             return sendResponse({ action: 'warn', message: 'High-value transfer (>= 1 ETH). Double-check recipient and context.' });
                         }
                     } catch (_) {}
+
+                    // AI-детектор: дополнительная проверка адреса получателя
+                    const aiResult = await aiDetector.riskAssessment(to);
+                    if (aiResult.action !== 'allow') {
+                        const aiMessage = aiResult.reasons.length > 0
+                            ? `AI risk assessment: ${aiResult.reasons.join(', ')} (score: ${aiResult.riskScore})`
+                            : `AI risk assessment: risk score ${aiResult.riskScore}`;
+                        return sendResponse({ action: aiResult.action, message: aiMessage });
+                    }
 
                     return sendResponse({ action: 'allow' });
                 }
